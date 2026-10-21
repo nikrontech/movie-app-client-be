@@ -6,6 +6,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import lt.rildev.movieappclientbe.service.MediaService;
@@ -23,5 +25,12 @@ public class MediaController {
     @GetMapping(value = "/image/{filename:.+}")
     public ResponseEntity<Resource> getImage(@PathVariable String filename) throws IOException {
         return mediaService.getImage(filename);
+    }
+
+    @GetMapping(value = "/video/{filename:.+}")
+    public void streamVideo(HttpServletRequest request,
+                            HttpServletResponse response,
+                            @PathVariable String filename) throws IOException {
+        mediaService.streamVideo(request, response, filename);
     }
 }
