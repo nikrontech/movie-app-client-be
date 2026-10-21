@@ -9,3 +9,6 @@ server:
 
 fuzzysearch:
   ratio: 70
+
+media:
+  images-directory: /home/nikron/Projects/movie-app-be/downloads/images
