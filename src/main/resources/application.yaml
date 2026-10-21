@@ -1,9 +1,11 @@
 spring:
   application:
     name: movie-app-client-be
-
-movie-app:
-  backend-url: http://localhost:8081
+  mongodb:
+    uri: mongodb://admin:changeme@localhost:27017/movieApp?authSource=admin
 
 server:
   port: 8080
+
+fuzzysearch:
+  ratio: 70

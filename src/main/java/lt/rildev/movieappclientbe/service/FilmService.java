@@ -2,21 +2,24 @@ package lt.rildev.movieappclientbe.service;
 
 import lt.rildev.movieappclientbe.model.Film;
 import lt.rildev.movieappclientbe.model.Screening;
+import lt.rildev.movieappclientbe.repository.FilmRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClient;
 
 import java.time.LocalDate;
 import java.time.ZoneOffset;
-import java.util.Arrays;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Value;
 
 @Service
 public class FilmService {
 
-    private final RestClient movieBackendClient;
+    private final FilmRepository filmRepository;
+    private final int fuzzySearchRatio;
 
-    public FilmService(RestClient movieBackendClient) {
-        this.movieBackendClient = movieBackendClient;
+    public FilmService(FilmRepository filmRepository,
+                       @Value("${fuzzysearch.ratio:70}") int fuzzySearchRatio) {
+        this.filmRepository = filmRepository;
+        this.fuzzySearchRatio = fuzzySearchRatio;
     }
 
     public List<Film> findFilms(LocalDate from, LocalDate to, String search) {
@@ -25,13 +28,14 @@ public class FilmService {
 
         var start = from.atStartOfDay().toInstant(ZoneOffset.UTC);
         var end = to.plusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC);
-        Film[] films = movieBackendClient.get().uri("/api/films").retrieve().body(Film[].class);
-        if (films == null) return List.of();
-
-        return Arrays.stream(films)
+        return filmRepository.findAll().stream()
                 .map(film -> withScreeningsInRange(film, start, end))
                 .filter(film -> !film.screenings().isEmpty())
-                .filter(film -> FuzzySearch.matches(search, film.title(), film.originalTitle()))
+                .filter(film -> search == null || search.isBlank()
+                        || FilmSearch.matches(search, fuzzySearchRatio, film.title(), film.originalTitle()))
+                .sorted((left, right) -> Integer.compare(
+                        FilmSearch.score(search, right.title(), right.originalTitle()),
+                        FilmSearch.score(search, left.title(), left.originalTitle())))
                 .toList();
     }
 
@@ -40,9 +44,8 @@ public class FilmService {
                 .filter(screening -> screening.startsAt() != null)
                 .filter(screening -> !screening.startsAt().isBefore(start) && screening.startsAt().isBefore(end))
                 .toList();
-        return new Film(film.id(), film.title(), film.originalTitle(), film.durationMinutes(), film.description(),
-                film.shortDescription(), film.releaseDate(), film.releaseYear(), film.genres(), film.ageRating(),
-                film.externalPosterUrl(), film.externalThumbnailUrl(), film.externalTrailerUrl(), film.thumbnailPath(),
-                film.rating(), film.sourceMovieIds(), film.providers(), screenings);
+        return film.toBuilder()
+                .screenings(screenings)
+                .build();
     }
 }

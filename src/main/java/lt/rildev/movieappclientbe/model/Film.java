@@ -1,10 +1,17 @@
 package lt.rildev.movieappclientbe.model;
 
+import lombok.Builder;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.time.Instant;
 import java.util.List;
 
+@Document(collection = "merged_movies")
+@Builder(toBuilder = true)
 public record Film(
-        String id,
+        @Id String id,
         String title,
         String originalTitle,
         Integer durationMinutes,
@@ -14,9 +21,11 @@ public record Film(
         Integer releaseYear,
         List<Genre> genres,
         AgeRating ageRating,
-        String externalPosterUrl,
-        String externalThumbnailUrl,
-        String externalTrailerUrl,
+        @JsonIgnore String externalPosterUrl,
+        @JsonIgnore String externalThumbnailUrl,
+        @JsonIgnore String externalTrailerUrl,
+        String posterPath,
+        String trailerPath,
         String thumbnailPath,
         Rating rating,
         List<String> sourceMovieIds,
