@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.beans.factory.annotation.Value;
 
 @Service
@@ -42,6 +43,10 @@ public class FilmService {
                             FilmSearch.score(search, left.title(), left.originalTitle()));
                 })
                 .toList();
+    }
+
+    public Optional<Film> findFilm(String id) {
+        return filmRepository.findById(id);
     }
 
     private Film withScreeningsInRange(Film film, java.time.Instant start, java.time.Instant end) {
