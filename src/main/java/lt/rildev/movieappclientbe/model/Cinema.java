@@ -1,4 +1,4 @@
 package lt.rildev.movieappclientbe.model;
 
-public record Cinema(String id, String name, String address, City city) {
+public record Cinema(String id, String name, String displayName, String address, City city) {
 }
