@@ -29,13 +29,16 @@ public class FilmController {
     public ResponseEntity<List<Film>> findFilms(
             @RequestParam("from") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam("to") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
-            @RequestParam(value = "search", required = false) String search) {
-        return ResponseEntity.ok(service.findFilms(from, to, search));
+            @RequestParam(value = "search", required = false) String search,
+            @RequestParam(value = "city", required = false) String city) {
+        return ResponseEntity.ok(service.findFilms(from, to, search, city));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Film> findFilm(@PathVariable String id) {
-        return service.findFilm(id)
+    public ResponseEntity<Film> findFilm(
+            @PathVariable String id,
+            @RequestParam(value = "city", required = false) String city) {
+        return service.findFilm(id, city)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
