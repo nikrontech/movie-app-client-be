@@ -33,9 +33,14 @@ public class FilmService {
                 .filter(film -> !film.screenings().isEmpty())
                 .filter(film -> search == null || search.isBlank()
                         || FilmSearch.matches(search, fuzzySearchRatio, film.title(), film.originalTitle()))
-                .sorted((left, right) -> Integer.compare(
-                        FilmSearch.score(search, right.title(), right.originalTitle()),
-                        FilmSearch.score(search, left.title(), left.originalTitle())))
+                .sorted((left, right) -> {
+                    int showingCount = Integer.compare(
+                            right.screenings().size(), left.screenings().size());
+                    if (showingCount != 0) return showingCount;
+                    return Integer.compare(
+                            FilmSearch.score(search, right.title(), right.originalTitle()),
+                            FilmSearch.score(search, left.title(), left.originalTitle()));
+                })
                 .toList();
     }
 
