@@ -11,5 +11,5 @@ fuzzysearch:
   ratio: 70
 
 media:
-  images-directory: /home/nikron/Projects/movie-app-be/downloads/images
-  videos-directory: /home/nikron/Projects/movie-app-be/downloads/videos
+  images-directory: /home/nikron/Projects/movie-app/movie-app-be/downloads/images
+  videos-directory: /home/nikron/Projects/movie-app/movie-app-be/downloads/videos
