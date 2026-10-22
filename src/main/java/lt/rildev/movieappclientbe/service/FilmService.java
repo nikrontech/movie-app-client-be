@@ -6,14 +6,17 @@ import lt.rildev.movieappclientbe.model.Screening;
 import lt.rildev.movieappclientbe.repository.FilmRepository;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
-import java.time.ZoneOffset;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Value;
 
 @Service
 public class FilmService {
+
+    private static final ZoneId CINEMA_TIME_ZONE = ZoneId.of("Europe/Vilnius");
 
     private final FilmRepository filmRepository;
     private final int fuzzySearchRatio;
@@ -25,31 +28,36 @@ public class FilmService {
     }
 
     public List<Film> findFilms(
-            LocalDate from,
-            LocalDate to,
+            LocalDateTime from,
+            LocalDateTime to,
             String search,
             String cityName) {
         if (from == null || to == null) throw new IllegalArgumentException("from and to are required");
         if (from.isAfter(to)) throw new IllegalArgumentException("from must not be after to");
 
-        var start = from.atStartOfDay().toInstant(ZoneOffset.UTC);
-        var end = to.plusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC);
+        var start = from.atZone(CINEMA_TIME_ZONE).toInstant();
+        var end = to.atZone(CINEMA_TIME_ZONE).toInstant();
         City city = parseCity(cityName);
+
         return filmRepository.findAll().stream()
                 .map(film -> withScreeningsInRange(film, start, end))
+                .map(film -> city == null ? film : withScreeningsInCity(film, city))
                 .filter(film -> !film.screenings().isEmpty())
-                .filter(film -> city == null || hasCity(film, city))
                 .filter(film -> search == null || search.isBlank()
                         || FilmSearch.matches(search, fuzzySearchRatio, film.title(), film.originalTitle()))
-                .sorted((left, right) -> {
-                    int showingCount = Integer.compare(
-                            right.screenings().size(), left.screenings().size());
-                    if (showingCount != 0) return showingCount;
-                    return Integer.compare(
-                            FilmSearch.score(search, right.title(), right.originalTitle()),
-                            FilmSearch.score(search, left.title(), left.originalTitle()));
-                })
+                // Sort only after filtering so the count reflects this response.
+                .sorted(byShowingCountThenSearchRelevance(search))
                 .toList();
+    }
+
+    private Comparator<Film> byShowingCountThenSearchRelevance(String search) {
+        return Comparator
+                .comparingInt((Film film) -> film.screenings().size())
+                .reversed()
+                .thenComparing(
+                        Comparator.comparingInt((Film film) ->
+                                FilmSearch.score(search, film.title(), film.originalTitle()))
+                                .reversed());
     }
 
     public Optional<Film> findFilm(String id, String cityName) {
@@ -61,7 +69,8 @@ public class FilmService {
     private Film withScreeningsInRange(Film film, java.time.Instant start, java.time.Instant end) {
         List<Screening> screenings = film.screenings() == null ? List.of() : film.screenings().stream()
                 .filter(screening -> screening.startsAt() != null)
-                .filter(screening -> !screening.startsAt().isBefore(start) && screening.startsAt().isBefore(end))
+                .filter(screening -> !screening.startsAt().isBefore(start)
+                        && !screening.startsAt().isAfter(end))
                 .toList();
         return film.toBuilder()
                 .screenings(screenings)
@@ -74,11 +83,6 @@ public class FilmService {
                 .filter(screening -> screening.cinema().city() == city)
                 .toList();
         return film.toBuilder().screenings(screenings).build();
-    }
-
-    private boolean hasCity(Film film, City city) {
-        return film.screenings().stream()
-                .anyMatch(screening -> screening.cinema() != null && screening.cinema().city() == city);
     }
 
     private City parseCity(String cityName) {
