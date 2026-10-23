@@ -39,9 +39,10 @@ public class FilmService {
         var end = to.atZone(CINEMA_TIME_ZONE).toInstant();
         City city = parseCity(cityName);
 
-        return filmRepository.findAll().stream()
-                .map(film -> withScreeningsInRange(film, start, end))
-                .map(film -> city == null ? film : withScreeningsInCity(film, city))
+        return filmRepository.findDistinctByScreenings_StartsAtBetween(start, end).stream()
+                .map(film -> city == null
+                        ? withScreeningsInRange(film, start, end)
+                        : withScreeningsInCity(film, city, start, end))
                 .filter(film -> !film.screenings().isEmpty())
                 .filter(film -> search == null || search.isBlank()
                         || FilmSearch.matches(search, fuzzySearchRatio, film.title(), film.originalTitle()))
@@ -75,6 +76,21 @@ public class FilmService {
         return film.toBuilder()
                 .screenings(screenings)
                 .build();
+    }
+
+    private Film withScreeningsInCity(
+            Film film,
+            City city,
+            java.time.Instant start,
+            java.time.Instant end) {
+        List<Screening> screenings = film.screenings() == null ? List.of() : film.screenings().stream()
+                .filter(screening -> screening.cinema() != null)
+                .filter(screening -> screening.cinema().city() == city)
+                .filter(screening -> screening.startsAt() != null)
+                .filter(screening -> !screening.startsAt().isBefore(start)
+                        && !screening.startsAt().isAfter(end))
+                .toList();
+        return film.toBuilder().screenings(screenings).build();
     }
 
     private Film withScreeningsInCity(Film film, City city) {
