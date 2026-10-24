@@ -4,5 +4,6 @@ public enum City {
     VILNIUS,
     KLAIPEDA,
     KAUNAS,
-    SIAULIAI
+    SIAULIAI,
+    PANEVEZYS
 }
