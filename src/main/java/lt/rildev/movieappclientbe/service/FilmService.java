@@ -52,6 +52,15 @@ public class FilmService {
     }
 
     private Comparator<Film> byShowingCountThenSearchRelevance(String search) {
+        if (search != null && !search.isBlank()) {
+            return Comparator
+                    .comparingInt((Film film) ->
+                            FilmSearch.score(search, film.title(), film.originalTitle()))
+                    .reversed()
+                    .thenComparing(Comparator.comparingInt(
+                            (Film film) -> film.screenings().size()).reversed());
+        }
+
         return Comparator
                 .comparingInt((Film film) -> film.screenings().size())
                 .reversed()
